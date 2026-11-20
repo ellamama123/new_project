@@ -5,6 +5,7 @@ import viteLogo from './assets/vite.svg'
 import './App.css'
 
 function App() {
+  const ciTestError = 'Lỗi cố ý để kiểm tra CI: biến không được sử dụng'
   const [count, setCount] = useState(0)
 
   return (
