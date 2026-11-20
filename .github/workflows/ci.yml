@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v6
+
+      - name: Cài Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Bật pnpm
+        run: corepack enable
+
+      - name: Cài thư viện
+        run: pnpm install --frozen-lockfile
+
+      - name: Kiểm tra mã nguồn
+        run: pnpm lint
+
+      - name: Build ứng dụng
+        run: pnpm build
