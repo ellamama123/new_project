@@ -1,0 +1,7 @@
+services:
+  frontend:
+    # CD sẽ truyền tên image kèm mã commit cần triển khai.
+    image: ${APP_IMAGE:?Can thiet lap APP_IMAGE truoc khi deploy}
+    restart: unless-stopped
+    ports:
+      - "80:80"
