@@ -31,7 +31,7 @@ function Storefront() {
   }
   return <>
     {contextHolder}
-    <div className="announcement">Một chút công nghệ. Nhiều hơn cảm hứng. <span>Miễn phí giao hàng từ 999.000đ</span></div>
+    <div className="announcement">Một chút công nghệ. Nhiều hơn cảm hứng hơn. <span>Miễn phí giao hàng từ 999.000đ</span></div>
     <header className="header">
       <a className="brand" href="#" aria-label="NOVA trang chủ"><span className="brand-icon"><ThunderboltFilled /></span>NOVA<span className="brand-dot">.</span></a>
       <nav aria-label="Điều hướng chính"><button className={!onlyFavorites ? 'nav-active' : ''} onClick={() => browse()}>Cửa hàng</button><button onClick={() => browse('Âm thanh')}>Âm thanh</button><button onClick={() => browse('Phụ kiện')}>Phụ kiện</button></nav>
