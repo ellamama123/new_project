@@ -33,3 +33,79 @@ jobs:
 
       - name: Build ứng dụng
         run: pnpm build
+  deploy:
+    name: Deploy VPS
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    concurrency:
+      group: production-vps
+      cancel-in-progress: false
+
+    steps:
+      - name: Chuẩn bị kết nối SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+
+      - name: Build và triển khai trên VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          ssh \
+            -i ~/.ssh/deploy_key \
+            -p "$VPS_PORT" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "$VPS_USER@$VPS_HOST" \
+            bash -s -- "$GITHUB_SHA" <<'REMOTE'
+          set -euo pipefail
+
+          DEPLOY_SHA="$1"
+          cd /root/fe/new_project
+
+          if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            echo "Có thay đổi chưa commit trên VPS. Dừng deploy."
+            exit 1
+          fi
+
+          GIT_TERMINAL_PROMPT=0 git fetch origin main
+
+          if [ "$DEPLOY_SHA" != "$(git rev-parse FETCH_HEAD)" ]; then
+            echo "main đã có commit mới hơn. Bỏ qua lần deploy cũ này."
+            exit 0
+          fi
+
+          git switch --detach "$DEPLOY_SHA"
+
+          export APP_IMAGE="nova-store:$DEPLOY_SHA"
+
+          docker compose -p new_project \
+            -f compose.production.yaml config --quiet
+
+          docker build \
+            -f Dockerfile.production \
+            -t "$APP_IMAGE" .
+
+          docker compose -p new_project \
+            -f compose.production.yaml \
+            up -d --wait --wait-timeout 90
+
+          curl --fail --silent --show-error \
+            --max-time 15 \
+            -o /dev/null http://127.0.0.1:8080
+
+          echo "Deploy thành công: $DEPLOY_SHA"
+          REMOTE
